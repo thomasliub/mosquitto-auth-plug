@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mosquitto.h>
 #include "log.h"
 #include "hash.h"
 #include "backends.h"
@@ -175,34 +176,55 @@ int be_redis_superuser(void *conf, const char *username)
 
 int be_redis_aclcheck(void *handle, const char *clientid, const char *username, const char *topic, int acc)
 {
-	struct redis_backend *conf = (struct redis_backend *)handle;
+    struct redis_backend *conf = (struct redis_backend *)handle;
 
-	redisReply *r;
+    redisReply *r;
 
-	if (conf == NULL || conf->redis == NULL || username == NULL)
-		return BACKEND_DEFER;
+    if (conf == NULL || conf->redis == NULL || username == NULL)
+        return BACKEND_DEFER;
 
-	if (strlen(conf->aclquery) == 0) {
-		return BACKEND_ALLOW;
-	}
-	char *query = malloc(strlen(conf->aclquery) + strlen(username) + strlen(topic) + 128);
-	sprintf(query, conf->aclquery, username, topic);
+    if (strlen(conf->aclquery) == 0) {
+        return BACKEND_ALLOW;
+    }
+    
+    /*
+    Modified by Thomas Liu:
+    To support wildchar matching, change to use redis hash structure.
+      Key:    ACL:MQTT user name;
+      Field:  topic(with wildchar allowed)
+      Value:  RO: 1; RW: 2
+    */
+    char *query = malloc(strlen(conf->aclquery) + strlen(username) + 128);
+    sprintf(query, conf->aclquery, username);
 
+    r = redisCommand(conf->redis, query);
+    if (r == NULL || conf->redis->err != REDIS_OK) {
+        be_redis_reconnect(conf);
+        free(query);
+        return BACKEND_ERROR;
+    }
+    free(query);
 
-	r = redisCommand(conf->redis, query, username, acc);
-	if (r == NULL || conf->redis->err != REDIS_OK) {
-		be_redis_reconnect(conf);
-		return BACKEND_ERROR;
-	}
-	free(query);
+    bool ok = false;
+    char *user_topic;
+    unsigned int value = 0;
+    bool matches = false;
+    unsigned int j;
+    if (r->type == REDIS_REPLY_ARRAY) {
+        for (j=0; j<r->elements/2; j++) {
+            if((r->element[j*2]->type == REDIS_REPLY_STRING) && (r->element[j*2+1]->type == REDIS_REPLY_STRING)){
+                user_topic = r->element[j*2]->str;
+                value = atoi(r->element[j*2+1]->str);
+                mosquitto_topic_matches_sub(user_topic, topic, &matches);
+                if(matches){
+                    ok = (value >= acc) ? true : false;
+                    if(ok) break;
+                }
+            }
+        }
+    }
 
-	int answer = 0;
-	if (r->type == REDIS_REPLY_STRING) {
-		int x = atoi(r->str);
-		if (x >= acc)
-			answer = 1;
-	}
-	freeReplyObject(r);
-	return (answer) ? BACKEND_ALLOW : BACKEND_DEFER;
+    freeReplyObject(r);
+    return (ok) ? BACKEND_ALLOW : BACKEND_DEFER;
 }
 #endif /* BE_REDIS */

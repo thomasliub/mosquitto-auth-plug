@@ -329,11 +329,12 @@ auth_opt_sqliteuserquery SELECT pw FROM users WHERE username = ?
 
 
 ```
-auth_opt_redis_userquery GET %s
-auth_opt_redis_aclquery GET %s-%s
+auth_opt_redis_userquery GET USER:%s
+auth_opt_redis_aclquery GET ACL:%s
 ```
 
-In `auth_opt_redis_userquery` the parameter is the _username_, whereas in `auth_opt_redis_aclquery`, the first parameter is the _username_ and the second is the _topic_. When using ACLS _topic_ must be an exact match - wildcards are not supported.
+In `auth_opt_redis_userquery` the parameter is the _username_, whereas in `auth_opt_redis_aclquery`, the parameter is also the _username_.
+For ACL query the key is a hash key. The filed of the key is the mqtt topic(with wildchar allowed). And the value of the key is the ACL level, 1 read, 2 read & write. 
 
 If no options are provided then it will default to not using an ACL and using the above userquery.
 
