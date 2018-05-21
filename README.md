@@ -166,26 +166,6 @@ If no options are provided then it will default to not using an ACL and using th
 | redis_host     | localhost         |             | hostname / IP address
 | redis_port     | 6379              |             | TCP port number |
 
-## Creating a user
-
-A trivial utility to generate hashes is included as `np`. Copy and paste the
-whole string generated into the respective back-end.
-
-```bash
-$ np
-Enter password:
-Re-enter same password:
-PBKDF2$sha256$901$Qh18ysY4wstXoHhk$g8d2aDzbz3rYztvJiO3dsV698jzECxSg
-```
-
-For example, in [Redis]:
-
-```
-$ redis-cli
-> SET USER:n2 PBKDF2$sha256$901$Qh18ysY4wstXoHhk$g8d2aDzbz3rYztvJiO3dsV698jzECxSg
-> QUIT
-```
-
 ## Configure Mosquitto
 
 ```
