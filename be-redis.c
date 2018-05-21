@@ -187,9 +187,7 @@ int be_redis_aclcheck(void *handle, const char *clientid, const char *username, 
         return BACKEND_ALLOW;
     }
     
-    /*
-    Modified by Thomas Liu:
-    To support wildchar matching, change to use redis hash structure.
+    /* To support wildchar matching, change to use redis hash structure.
       Key:    ACL:MQTT user name;
       Field:  topic(with wildchar allowed)
       Value:  RO: 1; RW: 2
