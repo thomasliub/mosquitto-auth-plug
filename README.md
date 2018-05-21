@@ -25,7 +25,7 @@ and authorization (ACL). Currently not all back-ends have the same capabilities
 | -------------------------- | :---: | :---: | :---: | :---:  | :-:  | :-: | :------: | :--: | :-: | :-----: | :----:
 | authentication             |   Y   |   Y   |   Y   |   Y    |  Y   |  Y  |    Y     |  Y   |  Y  |  Y      | Y
 | superusers                 |   Y   |       |       |        |      |  3  |    Y     |  Y   |  Y  |  Y      | N
-| acl checking               |   Y   |   1   |   2   |   2    |      |  3  |    Y     |  Y   |  Y  |  Y      | Y
+| acl checking               |   Y   |   Y   |   2   |   2    |      |  3  |    Y     |  Y   |  Y  |  Y      | Y
 | static superusers          |   Y   |   Y   |   Y   |   Y    |      |  3  |    Y     |  Y   |  Y  |  Y      | Y
 
  1. Topic wildcards (+/#) are not supported
@@ -334,7 +334,25 @@ auth_opt_redis_aclquery GET ACL:%s
 ```
 
 In `auth_opt_redis_userquery` the parameter is the _username_, whereas in `auth_opt_redis_aclquery`, the parameter is also the _username_.
-For ACL query the key is a hash key. The filed of the key is the mqtt topic(with wildchar allowed). And the value of the key is the ACL level, 1 read, 2 read & write. 
+For ACL query the key is a hash key. The field of the key is the mqtt topic(with wildchar allowed). And the value of the key is the ACL level 1 or 2.
+
+For example forllowing redis auth backend configurations:
+
+Get user password.
+```
+>>> import redis
+>>> r1=redis.Redis()
+>>> r1.get('USER:thomas')
+'PBKDF2$sha256$901$XPkOwNbd05p5XsUn$1uPtR6hMKBedWE44nqdVg+2NPKvyGst8'
+```
+
+Get user ACL info.
+```
+>>> import redis
+>>> r1=redis.Redis()
+>>> r1.hgetall('ACL:thomas')
+{'/#': '1', '/+/device': '2'}
+```
 
 If no options are provided then it will default to not using an ACL and using the above userquery.
 
